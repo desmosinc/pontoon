@@ -40,8 +40,13 @@ else:
             name="socialaccount_login_error",
         ),
         # Include standalone login even when a social auth provider is enabled
-        url(r'^standalone-login/$', login, name='standalone_login'),
-        url(r'^standalone-logout/$', logout, name='standalone_logout', kwargs={'next_page': '/'}),
+        url(r"^standalone-login/$", login, name="standalone_login"),
+        url(
+            r"^standalone-logout/$",
+            logout,
+            name="standalone_logout",
+            kwargs={"next_page": "/"},
+        ),
     ]
 
 for provider in providers.registry.get_list():

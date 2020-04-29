@@ -21,29 +21,33 @@ GOOGLE_PROVIDER_ID = GoogleProvider.id
 
 
 class Command(BaseCommand):
-    help = ('Ensures an allauth application for Google exists and has '
-            'credentials that match settings')
+    help = (
+        "Ensures an allauth application for Google exists and has "
+        "credentials that match settings"
+    )
 
     def handle(self, *args, **options):
         # Check if GOOGLE_* settings are configured, bail if not.
         if settings.GOOGLE_CLIENT_ID is None or settings.GOOGLE_SECRET_KEY is None:
-            self.stdout.write("GOOGLE_* settings unavailable; "
-                              "skipping provider config.")
+            self.stdout.write(
+                "GOOGLE_* settings unavailable; " "skipping provider config."
+            )
             return
 
         # Grab the credentials from settings
         data = dict(
-            name='Google',
+            name="Google",
             provider=GOOGLE_PROVIDER_ID,
             client_id=settings.GOOGLE_CLIENT_ID,
-            secret=settings.GOOGLE_SECRET_KEY
+            secret=settings.GOOGLE_SECRET_KEY,
         )
 
         try:
             # Update the existing provider with current settings.
             app = SocialApp.objects.get(provider=GOOGLE_PROVIDER_ID)
-            self.stdout.write("Updating existing Google allauth provider "
-                              "(pk=%s)" % app.pk)
+            self.stdout.write(
+                "Updating existing Google allauth provider " "(pk=%s)" % app.pk
+            )
             for k, v in data.items():
                 setattr(app, k, v)
             app.save()
@@ -51,8 +55,7 @@ class Command(BaseCommand):
             # Create the provider if necessary.
             app = SocialApp(**data)
             app.save()
-            self.stdout.write("Created new Google allauth provider (pk=%s)" %
-                              app.pk)
+            self.stdout.write("Created new Google allauth provider (pk=%s)" % app.pk)
 
         # Ensure the provider applies to the current default site.
         sites_count = app.sites.count()

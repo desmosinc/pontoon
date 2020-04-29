@@ -797,8 +797,8 @@ SOCIALACCOUNT_PROVIDERS = {
 }
 
 # Google Accounts
-GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
-GOOGLE_SECRET_KEY = os.environ.get('GOOGLE_SECRET_KEY', '')
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
+GOOGLE_SECRET_KEY = os.environ.get("GOOGLE_SECRET_KEY", "")
 
 # Defined all trusted origins that will be returned in pontoon.js file.
 if os.environ.get("JS_TRUSTED_ORIGINS"):
