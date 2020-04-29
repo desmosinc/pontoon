@@ -20,12 +20,13 @@ type Props = {|
 export default function TeamComments(props: Props) {
     const { teamComments, user, addComment } = props;
 
-    let canComment = user.isAuthenticated;
-    const comments = teamComments.comments;
-
-    if (!comments) {
+    if (teamComments.fetching || !teamComments.comments) {
         return null;
     }
+
+    const comments = teamComments.comments;
+
+    let canComment = user.isAuthenticated;
 
     return <section className="team-comments">
         { !comments.length && !canComment ?
