@@ -6,10 +6,12 @@ import { Localized } from '@fluent/react';
 
 import './Helpers.css';
 
+import { TeamComments, CommentCount } from 'modules/teamcomments';
 import { Machinery, MachineryCount } from 'modules/machinery';
 import { OtherLocales, OtherLocalesCount } from 'modules/otherlocales';
 
-import type { Entity, OtherLocaleTranslation } from 'core/api';
+import type { Entity } from 'core/api';
+import type { TeamCommentState } from 'modules/teamcomments';
 import type { Locale } from 'core/locale';
 import type { NavigationParams } from 'core/navigation';
 import type { UserState } from 'core/user';
@@ -23,12 +25,12 @@ type Props = {|
     locale: Locale,
     machinery: MachineryState,
     otherlocales: LocalesState,
-    orderedOtherLocales: Array<OtherLocaleTranslation>,
-    preferredLocalesCount: number,
+    teamComments: TeamCommentState,
     parameters: NavigationParams,
     user: UserState,
     updateEditorTranslation: (string, string) => void,
     searchMachinery: (string) => void,
+    addComment: (string, ?number) => void,
 |};
 
 
@@ -45,16 +47,13 @@ export default class Helpers extends React.Component<Props> {
             locale,
             machinery,
             otherlocales,
-            orderedOtherLocales,
-            preferredLocalesCount,
+            teamComments,
             parameters,
             user,
             updateEditorTranslation,
             searchMachinery,
+            addComment,
         } = this.props;
-
-        const machineryCount = machinery.translations.length;
-        const otherlocalesCount = otherlocales.translations.length;
 
         return <Tabs>
             <TabList>
@@ -62,20 +61,19 @@ export default class Helpers extends React.Component<Props> {
                     <Localized id='entitydetails-Helpers--machinery'>
                         { 'Machinery' }
                     </Localized>
-                    { !machineryCount ? null :
                     <MachineryCount machinery={ machinery } />
-                    }
                 </Tab>
                 <Tab>
                     <Localized id='entitydetails-Helpers--locales'>
                         { 'Locales' }
                     </Localized>
-                    { !otherlocalesCount ? null :
-                    <OtherLocalesCount
-                        otherlocales={ otherlocales }
-                        preferredLocalesCount={ preferredLocalesCount }
-                    />
-                    }
+                    <OtherLocalesCount otherlocales={ otherlocales } />
+                </Tab>
+                <Tab>
+                    <Localized id='entitydetails-Helpers--comments'>
+                        { 'Comments' }
+                    </Localized>
+                    <CommentCount teamComments={ teamComments }/>
                 </Tab>
             </TabList>
 
@@ -93,11 +91,16 @@ export default class Helpers extends React.Component<Props> {
                     entity={ entity }
                     isReadOnlyEditor={ isReadOnlyEditor }
                     otherlocales={ otherlocales }
-                    orderedOtherLocales= { orderedOtherLocales }
-                    preferredLocalesCount={ preferredLocalesCount }
                     user={ user }
                     parameters={ parameters }
                     updateEditorTranslation={ updateEditorTranslation }
+                />
+            </TabPanel>
+            <TabPanel>
+                <TeamComments
+                    teamComments={ teamComments }
+                    user={ user }
+                    addComment={ addComment }
                 />
             </TabPanel>
         </Tabs>;

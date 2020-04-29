@@ -14,6 +14,7 @@ class XLIFFEntity(VCSTranslation):
     """
     Interface for modifying a single entity in an xliff file.
     """
+
     def __init__(self, order, unit):
         self.order = order
         self.unit = unit
@@ -29,12 +30,12 @@ class XLIFFEntity(VCSTranslation):
 
     @property
     def source_string_plural(self):
-        return ''
+        return ""
 
     @property
     def comments(self):
         notes = self.unit.getnotes()
-        return notes.split('\n') if notes else []
+        return notes.split("\n") if notes else []
 
     @property
     def fuzzy(self):
@@ -65,21 +66,21 @@ class XLIFFEntity(VCSTranslation):
             self.target_string = self.strings[None]
             # Store updated nodes
             xml = self.unit.xmlelement
-            target = xml.find(self.unit.namespaced('target'))
+            target = xml.find(self.unit.namespaced("target"))
 
         else:
             # Read stored nodes
             xml = self.unit.xmlelement
-            target = xml.find(self.unit.namespaced('target'))
+            target = xml.find(self.unit.namespaced("target"))
             if target is not None:
                 xml.remove(target)
 
         # Clear unused approved tag
-        if 'approved' in xml.attrib:
-            del xml.attrib['approved']
+        if "approved" in xml.attrib:
+            del xml.attrib["approved"]
 
         # Clear unused state tag
-        if target is not None and 'state' in target.attrib:
+        if target is not None and "state" in target.attrib:
             del target.attrib["state"]
 
 
@@ -104,27 +105,28 @@ class XLIFFResource(ParsedResource):
         # TODO: should be made iOS specific
         # Map locale codes for iOS: http://www.ibabbleon.com/iOS-Language-Codes-ISO-639.html
         locale_mapping = {
-            'bn-IN': 'bn',
-            'ga-IE': 'ga',
-            'nb-NO': 'nb',
-            'nn-NO': 'nn',
-            'sv-SE': 'sv'
+            "bn-IN": "bn",
+            "ga-IE": "ga",
+            "nb-NO": "nb",
+            "nn-NO": "nn",
+            "sv-SE": "sv",
         }
 
         if locale_code in locale_mapping:
             locale_code = locale_mapping[locale_code]
 
         # Update target-language where necessary.
-        file_node = self.xliff_file.namespaced('file')
+        file_node = self.xliff_file.namespaced("file")
         for node in self.xliff_file.document.getroot().iterchildren(file_node):
-            if node.get('target-language'):
-                node.set('target-language', locale_code)
+            if node.get("target-language"):
+                node.set("target-language", locale_code)
 
-        with open(self.path, 'wb') as f:
+        with open(self.path, "wb") as f:
             f.write(bytes(self.xliff_file))
 
 
 def parse(path, source_path=None, locale=None):
     with open(path) as f:
-        xliff_file = xliff.xlifffile(f)
+        xml = f.read().encode("utf-8")
+        xliff_file = xliff.xlifffile(xml)
     return XLIFFResource(path, xliff_file)

@@ -1,7 +1,3 @@
-.react-tabs__tab-panel > section.machinery {
-    padding-top: 0;
-}
-
 .machinery {
     line-height: 22px;
 }
@@ -27,7 +23,7 @@
 }
 
 .machinery > .search-wrapper input[type=search] {
-    background: #4D5967;
+    background: #333941;
     border: none;
     border-radius: 20px;
     box-sizing: border-box;

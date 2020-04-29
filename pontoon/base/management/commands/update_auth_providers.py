@@ -11,25 +11,31 @@ from django.contrib.sites.models import Site
 from allauth.socialaccount.models import SocialApp
 from allauth.socialaccount.providers.fxa.provider import FirefoxAccountsProvider
 from allauth.socialaccount.providers.github.provider import GitHubProvider
+from allauth.socialaccount.providers.gitlab.provider import GitLabProvider
 from allauth.socialaccount.providers.google.provider import GoogleProvider
 
 
 FXA_PROVIDER_ID = FirefoxAccountsProvider.id
 GITHUB_PROVIDER_ID = GitHubProvider.id
+GITLAB_PROVIDER_ID = GitLabProvider.id
 GOOGLE_PROVIDER_ID = GoogleProvider.id
 
 
 class Command(BaseCommand):
-    help = ('Ensures an allauth application exists and has credentials that match settings')
+    help = (
+        "Ensures an allauth application exists and has credentials that match settings"
+    )
 
     def update_provider(self, data):
         # Update the existing provider with current settings.
         try:
-            app = SocialApp.objects.get(provider=data['provider'])
+            app = SocialApp.objects.get(provider=data["provider"])
             for k, v in data.items():
                 setattr(app, k, v)
             app.save()
-            self.stdout.write("Updated existing authentication provider (pk=%s)" % app.pk)
+            self.stdout.write(
+                "Updated existing authentication provider (pk=%s)" % app.pk
+            )
 
         # Create the provider if necessary.
         except ObjectDoesNotExist:
@@ -45,33 +51,54 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         # Check if FXA_* settings are configured
-        if settings.FXA_CLIENT_ID is not None or settings.FXA_SECRET_KEY is not None:
+        if settings.FXA_CLIENT_ID is not None and settings.FXA_SECRET_KEY is not None:
             fxa_data = dict(
-                name='FxA',
+                name="FxA",
                 provider=FXA_PROVIDER_ID,
                 client_id=settings.FXA_CLIENT_ID,
-                secret=settings.FXA_SECRET_KEY
+                secret=settings.FXA_SECRET_KEY,
             )
 
             self.update_provider(fxa_data)
 
-        # Check if GitHub_* settings are configured
-        if settings.GITHUB_CLIENT_ID is not None or settings.GITHUB_SECRET_KEY is not None:
+        # Check if GITHUB_* settings are configured
+        if (
+            settings.GITHUB_CLIENT_ID is not None
+            and settings.GITHUB_SECRET_KEY is not None
+        ):
             github_data = dict(
-                name='GitHub',
+                name="GitHub",
                 provider=GITHUB_PROVIDER_ID,
                 client_id=settings.GITHUB_CLIENT_ID,
-                secret=settings.GITHUB_SECRET_KEY
+                secret=settings.GITHUB_SECRET_KEY,
             )
 
             self.update_provider(github_data)
 
-        if settings.GOOGLE_CLIENT_ID is not None or settings.GOOGLE_SECRET_KEY is not None:
+        # Check if GITLAB_* settings are configured
+        if (
+            settings.GITLAB_CLIENT_ID is not None
+            and settings.GITLAB_SECRET_KEY is not None
+        ):
+            gitlab_data = dict(
+                name="GitLab",
+                provider=GITLAB_PROVIDER_ID,
+                client_id=settings.GITLAB_CLIENT_ID,
+                secret=settings.GITLAB_SECRET_KEY,
+            )
+
+            self.update_provider(gitlab_data)
+
+        # Check if GOOGLE_* settings are configured
+        if (
+            settings.GOOGLE_CLIENT_ID is not None
+            and settings.GOOGLE_SECRET_KEY is not None
+        ):
             google_data = dict(
-                name='Google',
+                name="Google",
                 provider=GOOGLE_PROVIDER_ID,
                 client_id=settings.GOOGLE_CLIENT_ID,
-                secret=settings.GOOGLE_SECRET_KEY
+                secret=settings.GOOGLE_SECRET_KEY,
             )
 
             self.update_provider(google_data)

@@ -1,14 +1,15 @@
 DC := $(shell which docker-compose)
 DOCKER := $(shell which docker)
-export PYTHON_VERSION := 2.7.17
-export PYTHON_3_VERSION := 3.7.3
 
 # *IMPORTANT*
 # Don't use this instance in a production setting. More info at:
 # https://docs.djangoproject.com/en/dev/ref/django-admin/#runserver
 SITE_URL ?= http://localhost:8000
 
-.PHONY: build build-py3 setup run clean test test-py3 shell shell-py3 loaddb build-frontend build-frontend-w
+USER_ID?=1000
+GROUP_ID?=1000
+
+.PHONY: build setup run clean shell test jest pytest black flow lint-frontend loaddb build-frontend build-frontend-w
 
 help:
 	@echo "Welcome to Pontoon!\n"
@@ -21,6 +22,7 @@ help:
 	@echo "  test             Runs the entire test suite (back and front)"
 	@echo "  jest             Runs the new frontend's test suite (Translate.Next)"
 	@echo "  pytest           Runs the backend's test suite (Python)"
+	@echo "  black            Runs the black formatted on all Python code"
 	@echo "  flow             Runs the Flow type checker on the frontend code"
 	@echo "  lint-frontend    Runs a code linter on the frontend code (Translate.Next)"
 	@echo "  loaddb           Load a database dump into postgres, file name in DB_DUMP_FILE"
@@ -32,69 +34,61 @@ help:
 	make build
 
 build:
-	echo "BUILD FOR PYTHON: $(PYTHON_VERSION)"
 	cp ./docker/config/webapp.env.template ./docker/config/webapp.env
 	sed -i -e 's/#SITE_URL#/$(subst /,\/,${SITE_URL})/g' ./docker/config/webapp.env
 
-	${DC} build webapp
+	"${DC}" build --build-arg USER_ID=$(USER_ID) --build-arg GROUP_ID=$(GROUP_ID) webapp
 
 	touch .docker-build
 
-build-py3: override PYTHON_VERSION=$(PYTHON_3_VERSION)
-build-py3: build
-
-test-py3: override PYTHON_VERSION=$(PYTHON_3_VERSION)
-test-py3: test
-
-shell-py3: override PYTHON_VERSION=$(PYTHON_3_VERSION)
-shell-py3: shell
-
-pytest-py3: override PYTHON_VERSION=$(PYTHON_3_VERSION)
-pytest-py3: pytest
-
-
 setup: .docker-build
-	${DC} run webapp /app/docker/set_up_webapp.sh
+	"${DC}" run webapp //app/docker/set_up_webapp.sh
 
 run: .docker-build
-	${DC} run --rm --service-ports webapp
+	"${DC}" run --rm --service-ports webapp
 
 clean:
 	rm .docker-build
 
 test:
-	${DC} run --rm webapp /app/docker/run_tests.sh
+	"${DC}" run --rm webapp //app/docker/run_tests.sh
 
 test-frontend: jest
 jest:
-	${DC} run --rm -w /app/frontend webapp yarn test
+	"${DC}" run --rm -w //app/frontend webapp yarn test
 
 pytest:
-	${DC} run --rm -w /app webapp pytest --cov-append --cov-report=term --cov=. $(opts)
+	"${DC}" run --rm webapp pytest --cov-append --cov-report=term --cov=. $(opts)
+
+flake8:
+	"${DC}" run --rm webapp flake8 pontoon/
+
+black:
+	"${DC}" run --rm webapp black pontoon/
 
 flow:
-	${DC} run --rm -w /app/frontend -e SHELL=/bin/bash webapp yarn flow:dev
+	"${DC}" run --rm -w //app/frontend -e SHELL=//bin/bash webapp yarn flow:dev
 
 lint-frontend:
-	${DC} run --rm -w /app/frontend webapp ./node_modules/.bin/eslint src/
+	"${DC}" run --rm -w //app/frontend webapp ./node_modules/.bin/eslint src/
 
 shell:
-	${DC} run --rm webapp /bin/bash
+	"${DC}" run --rm webapp //bin/bash
 
 loaddb:
 	# Stop connections to the database so we can drop it.
-	-${DC} stop webapp
+	-"${DC}" stop webapp
 	# Make sure the postgresql container is running.
-	-${DC} start postgresql
-	-${DC} exec postgresql dropdb -U pontoon pontoon
-	${DC} exec postgresql createdb -U pontoon pontoon
+	-"${DC}" start postgresql
+	-"${DC}" exec postgresql dropdb -U pontoon pontoon
+	"${DC}" exec postgresql createdb -U pontoon pontoon
 	# Note: docker-compose doesn't support the `-i` (--interactive) argument
 	# that we need to send the dump file through STDIN. We thus are forced to
 	# use docker here instead.
-	${DOCKER} exec -i `${DC} ps -q postgresql` pg_restore -U pontoon -d pontoon -O < ${DB_DUMP_FILE}
+	"${DOCKER}" exec -i `"${DC}" ps -q postgresql` pg_restore -U pontoon -d pontoon -O < "${DB_DUMP_FILE}"
 
 build-frontend:
-	${DC} run --rm webapp npm run build
+	"${DC}" run --rm webapp npm run build
 
 build-frontend-w:
-	${DC} run --rm webapp npm run build-w
+	"${DC}" run --rm webapp npm run build-w

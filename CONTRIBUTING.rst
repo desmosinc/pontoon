@@ -55,6 +55,7 @@ you can start an interactive shell inside a Pontoon container:
 
 Browser Support
 ===============
+
 The following is the `browser support matrix of Pontoon <https://browserl.ist/?q=Firefox+%3E%3D+52%2C+FirefoxAndroid+%3E%3D+52%2C+Chrome+%3E%3D+55%2C+ChromeAndroid+%3E%3D+55%2C+Edge+%3E%3D+15%2C+Safari+%3E%3D+10.1%2C+iOS+%3E%3D+10.3>`_:
 
 .. code-block:: bash
@@ -71,21 +72,34 @@ The following is the `browser support matrix of Pontoon <https://browserl.ist/?q
 Python code conventions
 =======================
 
-Python code should follow PEP-8.
+Our Python code is automatically formatted using `black <https://black.readthedocs.io/en/stable/>`_.
+We enforce that in our Continuous Integration tool (travis), so you will need to run
+black on your code before sending it for review.
 
-Max line length is 80 characters.
-
-4-space indentation.
-
-To run the linter, do (inside a docker container):
+You can run black locally either as an
+`add-on in your code editor <https://black.readthedocs.io/en/stable/editor_integration.html>`_,
+or as a `git pre-hook commit <https://black.readthedocs.io/en/stable/version_control_integration.html>`_.
+Alternatively, you can format your code using:
 
 .. code-block:: shell
 
-    $ flake8 pontoon
+    $ make black
 
+.. note::
 
-If you hit issues, use ``# noqa`` to make the linter ignore that error. Note
-that in most cases, it is better to fix the issues than ignoring them.
+    Using black on all Python code means that we cannot fight over code style anymore.
+    You are free to write code however you like, because in the end black is the one
+    that will format it. We thus don't need to pay any more attention to style during
+    code reviews, and are free from those never-ending code style discussions.
+
+Additionally, we use a linter to verify that imports are correct. You can run it with:
+
+.. code-block:: shell
+
+    $ make flake8
+
+In the rare case when you cannot fix a flake8 error, use ``# noqa`` to make the linter
+ignore that error. Note that in most cases, it is better to fix the issues than ignoring them.
 
 
 Javascript code conventions
@@ -224,7 +238,7 @@ for example.
 Running tests
 =============
 
-To run the tests, do:
+To run the entire test suite, do:
 
 .. code-block:: shell
 
@@ -235,7 +249,14 @@ To run only the ``frontend`` tests:
 
 .. code-block:: shell
 
-    $ make test-frontend
+    $ make jest
+
+
+To run only the Python tests:
+
+.. code-block:: shell
+
+    $ make pytest
 
 
 To run specific tests or specify arguments, you'll want to start a shell in the
@@ -343,16 +364,3 @@ It's important to remember to update both packages:
 
 * python-fluent (responsible for e.g. server-side sync process)
 * fluent-syntax (required by the fluent editor)
-
-How to build the fresh version of fluent-syntax.js
---------------------------------------------------
-
-You need to bump the version number in the package.json file and then run
-the following commands:
-
-.. code-block:: shell
-
-    $ make build
-    $ make shell
-    app@...:/app$ npm install fluent-syntax
-    app@...:/app$ cp node_modules/fluent-syntax/compat.js pontoon/base/static/js/lib/fluent-syntax.js
