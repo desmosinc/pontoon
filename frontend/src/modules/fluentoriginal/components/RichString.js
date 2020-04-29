@@ -5,10 +5,12 @@ import { serializeVariantKey } from '@fluent/syntax';
 
 import './RichString.css';
 
-import { WithPlaceablesForFluent } from 'core/placeable';
+import { WithPlaceablesForFluentNoLeadingSpace } from 'core/placeable';
+import { withTerms } from 'core/term';
 import { fluent } from 'core/utils';
 
 import type { Entity } from 'core/api';
+import type { TermState } from 'core/term';
 import type {
     FluentAttribute,
     FluentAttributes,
@@ -19,25 +21,39 @@ import type {
 
 type Props = {|
     +entity: Entity,
+    +terms: TermState,
     +handleClickOnPlaceable: (SyntheticMouseEvent<HTMLParagraphElement>) => void,
 |};
+
+
+const WithPlaceablesTerms = withTerms(WithPlaceablesForFluentNoLeadingSpace);
 
 
 function renderItem(
     value: string,
     label: string,
     key: string,
+    terms: TermState,
     className: ?string,
+    attributeName: ?string,
 ): React.Node {
     return <tr key={ key } className={ className }>
         <td>
-            <label>{ label }</label>
+            { attributeName ?
+                <label>
+                    <span className='attribute-label'>{ attributeName }</span>
+                    <span className='divider'>&middot;</span>
+                    <span className='label'>{ label }</span>
+                </label>
+                :
+                <label>{ label }</label>
+            }
         </td>
         <td>
             <span>
-                <WithPlaceablesForFluent>
+                <WithPlaceablesTerms terms={ terms }>
                     { value }
-                </WithPlaceablesForFluent>
+                </WithPlaceablesTerms>
             </span>
         </td>
     </tr>;
@@ -46,7 +62,8 @@ function renderItem(
 
 function renderElements(
     elements: Array<PatternElement>,
-    label: string,
+    terms: TermState,
+    attributeName: ?string,
 ): React.Node {
     let indent = false;
     return elements.map((element, index) => {
@@ -63,7 +80,9 @@ function renderElements(
                     variant.value.elements[0].value,
                     serializeVariantKey(variant.key),
                     [index, i].join('-'),
+                    terms,
                     indent ? 'indented' : null,
+                    attributeName,
                 );
             });
             indent = false;
@@ -74,34 +93,36 @@ function renderElements(
                 return null;
             }
 
+            // When rendering Message attribute, set label to attribute name.
+            // When rendering Message value, set label to "Value".
+            const label = attributeName || 'Value';
+
             indent = true;
             return renderItem(
                 element.value,
                 label,
                 index.toString(),
+                terms,
             );
         }
     });
 }
 
 
-function renderValue(value: Pattern, label?: string): React.Node {
+function renderValue(value: Pattern, terms: TermState, attributeName?: string): React.Node {
     if (!value) {
         return null;
     }
 
-    if (!label) {
-        label = 'Value';
-    }
-
     return renderElements(
         value.elements,
-        label,
+        terms,
+        attributeName,
     );
 }
 
 
-function renderAttributes(attributes: ?FluentAttributes): React.Node {
+function renderAttributes(attributes: ?FluentAttributes, terms: TermState): React.Node {
     if (!attributes) {
         return null;
     }
@@ -109,6 +130,7 @@ function renderAttributes(attributes: ?FluentAttributes): React.Node {
     return attributes.map((attribute: FluentAttribute) => {
         return renderValue(
             attribute.value,
+            terms,
             attribute.id.name,
         );
     });
@@ -125,8 +147,8 @@ export default function RichString(props: Props) {
 
     return <table className="original fluent-rich-string" onClick={ props.handleClickOnPlaceable }>
         <tbody>
-            { renderValue(message.value) }
-            { renderAttributes(message.attributes) }
+            { renderValue(message.value, props.terms) }
+            { renderAttributes(message.attributes, props.terms) }
         </tbody>
     </table>;
 }

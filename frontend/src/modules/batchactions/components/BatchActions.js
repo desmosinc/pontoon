@@ -177,19 +177,30 @@ export class BatchActionsBase extends React.Component<InternalProps> {
     render() {
         return <div className="batch-actions">
             <div className="topbar clearfix">
+                <Localized
+                    id="batchactions-BatchActions--header-select-all"
+                    attrs={{ title: true }}
+                    elems={{ glyph: <i className="fa fa-check fa-lg" /> }}
+                >
+                    <button
+                        className="select-all"
+                        title="Select All Strings (Ctrl + Shift + A)"
+                        onClick={ this.selectAllEntities }
+                    >
+                        { '<glyph></glyph> Select All' }
+                    </button>
+                </Localized>
                 { this.props.batchactions.requestInProgress === 'select-all' ?
                     <div className="selecting fa fa-sync fa-spin"></div>
                     :
                     <Localized
                         id="batchactions-BatchActions--header-selected-count"
                         attrs={{ title: true }}
-                        glyph={
-                            <i className="fa fa-times fa-lg" />
-                        }
-                        stress={
-                            <span className="stress" />
-                        }
-                        $count={ this.props.batchactions.entities.length }
+                        elems={{
+                            glyph: <i className="fa fa-times fa-lg" />,
+                            stress: <span className="stress" />,
+                        }}
+                        vars={{ count: this.props.batchactions.entities.length }}
                     >
                         <button
                             className="selected-count"
@@ -200,30 +211,13 @@ export class BatchActionsBase extends React.Component<InternalProps> {
                         </button>
                     </Localized>
                 }
-                <Localized
-                    id="batchactions-BatchActions--header-select-all"
-                    attrs={{ title: true }}
-                    glyph={
-                        <i className="fa fa-check fa-lg" />
-                    }
-                >
-                    <button
-                        className="select-all"
-                        title="Select All Strings (Ctrl + Shift + A)"
-                        onClick={ this.selectAllEntities }
-                    >
-                        { '<glyph></glyph> Select All' }
-                    </button>
-                </Localized>
             </div>
 
             <div className="main-content">
                 <div className="intro">
                     <Localized
                         id="batchactions-BatchActions--warning"
-                        stress={
-                            <span className="stress" />
-                        }
+                        elems={{ stress: <span className="stress" /> }}
                     >
                         <p>{ '<stress>Warning:</stress> These actions will be applied to all selected strings and cannot be undone.' }</p>
                     </Localized>

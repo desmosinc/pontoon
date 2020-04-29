@@ -64,7 +64,7 @@ def translate_locale_agnostic(request, slug, part):
         project = get_object_or_404(Project.objects.available(), slug=slug)
         project_locales = project.locales
 
-    if user.is_authenticated():
+    if user.is_authenticated:
         locale = user.profile.custom_homepage
 
         if locale and project_locales.filter(code=locale).exists():
@@ -465,8 +465,8 @@ def _send_add_comment_notifications(user, comment, entity, locale, translation):
     if translation:
         recipients = set(translation.comments.values_list("author__pk", flat=True))
 
-        recipients.add(translation.user.pk)
-
+        if translation.user:
+            recipients.add(translation.user.pk)
         if translation.approved_user:
             recipients.add(translation.approved_user.pk)
         if translation.unapproved_user:
