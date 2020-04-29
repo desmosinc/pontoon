@@ -16,9 +16,11 @@ import type { Locale } from 'core/locale';
 import type { FluentMessage } from 'core/utils/fluent/types';
 
 
+export const END_UPDATE_TRANSLATION: 'editor/END_UPDATE_TRANSLATION' = 'editor/END_UPDATE_TRANSLATION';
 export const RESET_FAILED_CHECKS: 'editor/RESET_FAILED_CHECKS' = 'editor/RESET_FAILED_CHECKS';
 export const RESET_SELECTION: 'editor/RESET_SELECTION' = 'editor/RESET_SELECTION';
 export const SET_INITIAL_TRANSLATION: 'editor/SET_INITIAL_TRANSLATION' = 'editor/SET_INITIAL_TRANSLATION';
+export const START_UPDATE_TRANSLATION: 'editor/START_UPDATE_TRANSLATION' = 'editor/START_UPDATE_TRANSLATION';
 export const UPDATE: 'editor/UPDATE' = 'editor/UPDATE';
 export const UPDATE_FAILED_CHECKS: 'editor/UPDATE_FAILED_CHECKS' = 'editor/UPDATE_FAILED_CHECKS';
 export const UPDATE_SELECTION: 'editor/UPDATE_SELECTION' = 'editor/UPDATE_SELECTION';
@@ -128,17 +130,23 @@ export function resetFailedChecks(): ResetFailedChecksAction {
 }
 
 
-function _getOperationNotif(change: 'added' | 'saved' | 'updated') {
-    switch (change) {
-        case 'added':
-            return notification.messages.TRANSLATION_ADDED;
-        case 'saved':
-            return notification.messages.TRANSLATION_SAVED;
-        case 'updated':
-            return notification.messages.TRANSLATION_UPDATED;
-        default:
-            throw new Error('Unexpected translation status change: ' + change);
-    }
+export type StartUpdateTranslationAction = {|
+   +type: typeof START_UPDATE_TRANSLATION,
+|};
+function startUpdateTranslation(): StartUpdateTranslationAction {
+    return {
+        type: START_UPDATE_TRANSLATION,
+    };
+}
+
+
+export type EndUpdateTranslationAction = {|
+   +type: typeof END_UPDATE_TRANSLATION,
+|};
+function endUpdateTranslation(): EndUpdateTranslationAction {
+    return {
+        type: END_UPDATE_TRANSLATION,
+    };
 }
 
 
@@ -158,8 +166,9 @@ export function sendTranslation(
 ): Function {
     return async dispatch => {
         NProgress.start();
+        dispatch(startUpdateTranslation());
 
-        const content = await api.translation.updateTranslation(
+        const content = await api.translation.create(
             entity.pk,
             translation,
             locale.code,
@@ -178,14 +187,9 @@ export function sendTranslation(
             // translation for that entity.
             dispatch(notification.actions.add(notification.messages.SAME_TRANSLATION));
         }
-        else if (
-            content.type === 'added' ||
-            content.type === 'saved' ||
-            content.type === 'updated'
-        ) {
+        else if (content.status) {
             // Notify the user of the change that happened.
-            const notif = _getOperationNotif(content.type);
-            dispatch(notification.actions.add(notif));
+            dispatch(notification.actions.add(notification.messages.TRANSLATION_SAVED));
 
             // Ignore existing unsavedchanges because they are saved now.
             dispatch(unsavedchanges.actions.ignore());
@@ -223,16 +227,19 @@ export function sendTranslation(
             }
         }
 
+        dispatch(endUpdateTranslation());
         NProgress.done();
     }
 }
 
 
 export default {
+    endUpdateTranslation,
     resetFailedChecks,
     resetSelection,
     sendTranslation,
     setInitialTranslation,
+    startUpdateTranslation,
     update,
     updateFailedChecks,
     updateSelection,

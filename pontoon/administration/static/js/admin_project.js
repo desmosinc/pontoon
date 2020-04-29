@@ -62,7 +62,33 @@ $(function() {
     $.ajax({
       url: '/admin/projects/' + $('#id_slug').val() + '/sync/'
     }).success(function() {
-      button.html('Sync started');
+      button.html('Started');
+    }).error(function() {
+      button.html('Whoops!');
+    }).complete(function() {
+      setTimeout(function() {
+        button.removeClass('in-progress').html(title);
+      }, 2000);
+    });
+  });
+
+  // Manually Pretranslate project
+  $('.pretranslate').click(function(e) {
+    e.preventDefault();
+
+    var button = $(this),
+        title = button.html();
+
+    if (button.is('.in-progress')) {
+      return;
+    }
+
+    button.addClass('in-progress').html('Pretranslating...');
+
+    $.ajax({
+      url: '/admin/projects/' + $('#id_slug').val() + '/pretranslate/'
+    }).success(function() {
+      button.html('Started');
     }).error(function() {
       button.html('Whoops!');
     }).complete(function() {

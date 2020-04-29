@@ -3,6 +3,7 @@
 import { RECEIVE, REQUEST, UPDATE } from './actions';
 
 import type { ReceiveAction, RequestAction, UpdateAction } from './actions';
+import type { TranslationComment } from 'core/api'
 
 
 type Action =
@@ -12,31 +13,32 @@ type Action =
 ;
 
 
-export type DBTranslation = {|
+export type HistoryTranslation = {|
     +approved: boolean,
-    +approved_user: string,
+    +approvedUser: string,
     +date: string,
-    +date_iso: string,
+    +dateIso: string,
     +fuzzy: boolean,
     +pk: number,
     +rejected: boolean,
     +string: string,
     +uid: ?number,
-    +unapproved_user: string,
+    +unapprovedUser: string,
     +user: string,
     +username: string,
-    +user_gravatar_url_small: string,
+    +userGravatarUrlSmall: string,
+    +comments: Array<TranslationComment>,
 |};
 
 export type HistoryState = {|
     +fetching: boolean,
     +entity: ?number,
     +pluralForm: ?number,
-    +translations: Array<DBTranslation>,
+    +translations: Array<HistoryTranslation>,
 |};
 
 
-function updateTranslation(translations: Array<DBTranslation>, newTranslation: DBTranslation) {
+function updateTranslation(translations: Array<HistoryTranslation>, newTranslation: HistoryTranslation) {
     return translations.map(translation => {
         if (translation.pk === newTranslation.pk) {
             return { ...translation, ...newTranslation };

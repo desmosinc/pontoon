@@ -187,13 +187,15 @@ th {
   position: absolute;
 }
 
-.table-sort th.asc i:after {
+.table-sort th.asc i:after,
+.table-sort th.desc.inverted i:after {
   content: "";
   display: inline-block;
   margin-top: 5px;
 }
 
-.table-sort th.desc i:after {
+.table-sort th.desc i:after,
+.table-sort th.asc.inverted i:after {
   content: "";
   display: inline-block;
   margin-top: -5px;
@@ -804,8 +806,10 @@ header .right .select .menu {
   padding: 10px;
 }
 
-.notifications .menu li.notification-item .message {
-  padding: 10px;
+.notifications .menu li.notification-item .message.trim {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Users can include HTML tags in their messages */

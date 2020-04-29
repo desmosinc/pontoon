@@ -1,8 +1,10 @@
-.history .translation {
+.history .wrapper {
     border-bottom: 1px solid #5E6475;
+}
+
+.history .translation {
     cursor: pointer;
     padding: 15px 10px;
-    transition: all 0.1s ease-out;
     display: flex;
 }
 
@@ -14,18 +16,18 @@
     background: #4D5967;
 }
 
-.history .translation .avatar {
+.history .translation .user-avatar {
     padding-right: 8px;
     position: relative;
     top: 3px;
 }
 
-.history .translation .avatar img {
+.history .translation .user-avatar img {
     border-radius: 6px;
     border: 2px solid #5E6475;
 }
 
-.history .translation:hover .avatar img {
+.history .translation:hover .user-avatar img {
     border-color: #637283;
 }
 
@@ -69,16 +71,44 @@
     color: #7BC876;
 }
 
-.history .translation .content > header .toggle-diff {
+.history .translation .content > header .toggle-diff,
+.history .translation .content > header .toggle-comments {
     font-size: inherit;
     font-weight: 300;
     margin-right: 6px;
     text-transform: uppercase;
+    pointer-events: auto;
 }
 
 .history .translation .content > header .toggle-diff:hover,
-.history .translation .content > header .toggle-diff.active {
+.history .translation .content > header .toggle-diff.active,
+.history .translation .content > header .toggle-comments:hover,
+.history .translation .content > header .toggle-comments.active {
     color: #7BC876;
+}
+
+.history .translation .content > header .toggle-comments.active {
+    background: #333941;
+    border: 1px solid #3f4752;
+    border-radius: 4px;
+    padding: 2px 4px;
+}
+
+.history .translation:hover .content > header .toggle-comments.active {
+    border-color: #4d5967;
+}
+
+.history .translation .content > header .toggle-comments.active:hover {
+    border-color: #637283;
+}
+
+.history .translation .content > header .toggle-comments.active .stress {
+    color: #CCC;
+}
+
+.history .translation .content > header .divider {
+    margin-right: 3px;
+    margin-left: -3px;
 }
 
 .history .translation .content > header button {
@@ -118,7 +148,7 @@
     opacity: 1;
 }
 
-.history .translation.fuzzy > header button.approve:before {
+.history .translation.fuzzy .content > header button.approve:before {
     color: #FED271;
 }
 

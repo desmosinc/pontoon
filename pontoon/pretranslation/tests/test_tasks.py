@@ -14,7 +14,7 @@ from pontoon.test.factories import (
 )
 
 
-@patch('pontoon.pretranslation.tasks.get_translations')
+@patch("pontoon.pretranslation.tasks.get_translations")
 @pytest.mark.django_db
 def test_pretranslate(gt_mock, project_a, locale_a, resource_a, locale_b):
     resources = [
@@ -28,37 +28,29 @@ def test_pretranslate(gt_mock, project_a, locale_a, resource_a, locale_b):
     for i, x in enumerate(["aaab", "abab"]):
         EntityFactory.create(resource=resources[1], string=x, order=i)
 
-    TranslatedResourceFactory.create(
-        resource=resources[0], locale=locale_a
-    )
-    TranslatedResourceFactory.create(
-        resource=resources[0], locale=locale_b
-    )
-    TranslatedResourceFactory.create(
-        resource=resources[1], locale=locale_a
-    )
+    TranslatedResourceFactory.create(resource=resources[0], locale=locale_a)
+    TranslatedResourceFactory.create(resource=resources[0], locale=locale_b)
+    TranslatedResourceFactory.create(resource=resources[1], locale=locale_a)
 
     ProjectLocaleFactory.create(
-        project=project_a,
-        locale=locale_a,
+        project=project_a, locale=locale_a,
     )
     ProjectLocaleFactory.create(
-        project=project_a,
-        locale=locale_b,
+        project=project_a, locale=locale_b,
     )
 
     tm_user = User.objects.get(email="pontoon-tm@mozilla.com")
     gt_mock.return_value = [("pretranslation", None, tm_user)]
 
-    pretranslate(project_a)
-
+    pretranslate(project_a.pk)
+    project_a.refresh_from_db()
     translations = Translation.objects.filter(user=tm_user)
 
     # Total pretranslations = 2(tr_ax) + 2(tr_bx) + 2(tr_ay)
     assert len(translations) == 6
 
-    # unreviewed count == total pretranslations.
-    assert project_a.unreviewed_strings == 6
+    # fuzzy count == total pretranslations.
+    assert project_a.fuzzy_strings == 6
 
     # latest_translation belongs to pretranslations.
     assert project_a.latest_translation in translations

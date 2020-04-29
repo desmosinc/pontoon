@@ -33,21 +33,9 @@ export default {
         </Localized>,
         type: 'info',
     },
-    'TRANSLATION_ADDED': {
-        content: <Localized id='notification--translation-added'>
-            Translation added
-        </Localized>,
-        type: 'info',
-    },
     'TRANSLATION_SAVED': {
         content: <Localized id='notification--translation-saved'>
             Translation saved
-        </Localized>,
-        type: 'info',
-    },
-    'TRANSLATION_UPDATED': {
-        content: <Localized id='notification--translation-updated'>
-            Translation updated
         </Localized>,
         type: 'info',
     },
@@ -72,6 +60,12 @@ export default {
     'UNABLE_TO_UNREJECT_TRANSLATION': {
         content: <Localized id='notification--unable-to-unreject-translation'>
             Unable to unreject translation
+        </Localized>,
+        type: 'error',
+    },
+    'UNABLE_TO_DELETE_TRANSLATION': {
+        content: <Localized id='notification--unable-to-delete-translation'>
+            Unable to delete translation
         </Localized>,
         type: 'error',
     },
@@ -120,6 +114,12 @@ export default {
     'STRING_LINK_COPIED': {
         content: <Localized id='notification--string-link-copied'>
             Link copied to clipboard
+        </Localized>,
+        type: 'info',
+    },
+    'COMMENT_ADDED': {
+        content: <Localized id='notification--comment-added'>
+            Comment added
         </Localized>,
         type: 'info',
     },

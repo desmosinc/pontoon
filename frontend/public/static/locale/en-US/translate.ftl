@@ -81,6 +81,15 @@ resourceprogress-ResourceProgress--errors = Errors
 resourceprogress-ResourceProgress--missing = Missing
 
 
+## Comments
+## Allows user to leave comments on translations
+
+comments-AddComment--input =
+    .placeholder = Write a comment…
+comments-AddComment--submit-button = <glyph></glyph>
+    .title = Submit comment
+
+
 ## Editor Menu
 ## Allows contributors to modify or propose a translation
 
@@ -90,10 +99,18 @@ editor-EditorMenu--button-copy = Copy
     .title = Copy From Source (Ctrl + Shift + C)
 editor-EditorMenu--button-clear = Clear
     .title = Clear Translation (Ctrl + Shift + Backspace)
+editor-EditorMenu--button-approve = Approve
+    .title = Approve Translation (Enter)
+editor-EditorMenu--button-approving = <glyph></glyph>Approving
+    .title = Approving Translation…
 editor-EditorMenu--button-save = Save
     .title = Save Translation (Enter)
+editor-EditorMenu--button-saving = <glyph></glyph>Saving
+    .title = Saving Translation…
 editor-EditorMenu--button-suggest = Suggest
     .title = Suggest Translation (Enter)
+editor-EditorMenu--button-suggesting = <glyph></glyph>Suggesting
+    .title = Suggesting Translation…
 
 
 ## Editor Settings
@@ -181,6 +198,8 @@ entitydetails-EntityNavigation--previous = <glyph></glyph>Previous
 
 entitydetails-Helpers--machinery = Machinery
 entitydetails-Helpers--locales = Locales
+entitydetails-Helpers--comments = Comments
+entitydetails-Helpers--no-comments = No comments available.
 
 
 ## Entity Details Metadata
@@ -263,6 +282,15 @@ history-Translation--button-not-rejected =
 
 history-Translation--button-rejected =
     .title = Rejected
+
+history-Translation--button-comment = Comment
+    .title = Toggle translation comments
+
+history-Translation--button-comments = { $commentCount ->
+        [one] <stress>{ $commentCount }</stress> Comment
+       *[other] <stress>{ $commentCount }</stress> Comments
+    }
+    .title = Toggle translation comments
 
 
 ## Interactive Tour
@@ -416,13 +444,12 @@ notification--translation-unaproved = Translation unaproved
 notification--translation-rejected = Translation rejected
 notification--translation-unrejected = Translation unrejected
 notification--translation-deleted = Translation deleted
-notification--translation-added = Translation added
 notification--translation-saved = Translation saved
-notification--translation-updated = Translation updated
 notification--unable-to-approve-translation = Unable to approve translation
 notification--unable-to-unapprove-translation = Unable to unapprove translation
 notification--unable-to-reject-translation = Unable to reject translation
 notification--unable-to-unreject-translation = Unable to unreject translation
+notification--unable-to-delete-translation = Unable to delete translation
 notification--same-translation = Same translation already exists
 notification--tt-checks-enabled = Translate Toolkit Checks enabled
 notification--tt-checks-disabled = Translate Toolkit Checks disabled
@@ -430,6 +457,7 @@ notification--make-suggestions-enabled = Make Suggestions enabled
 notification--make-suggestions-disabled = Make Suggestions disabled
 notification--entity-not-found = Can’t load specified string
 notification--string-link-copied = Link copied to clipboard
+notification--comment-added = Comment added
 
 
 ## OtherLocales Translation
@@ -560,6 +588,12 @@ search-TimeRangeFilter--heading-time = Translation Time
 search-TimeRangeFilter--edit-range = <glyph></glyph>Edit Range
 search-TimeRangeFilter--save-range = Save Range
 
+
+## User Avatar
+## Shows user Avatar with alt text
+
+user-UserAvatar--anon-alt-text = Anonymous User
+user-UserAvatar--alt-text = User Profile
 
 ## User Menu
 ## Shows user menu entries and options to sign in or out.

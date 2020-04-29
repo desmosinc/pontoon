@@ -15,6 +15,25 @@ export type EntityTranslation = {|
 
 
 /**
+ * Comments pertaining to a translation.
+ */
+export type TranslationComment = {|
+    +author: string,
+    +username: string,
+    +userGravatarUrlSmall: string,
+    +createdAt: string,
+    +dateIso: string,
+    +content: string,
+    +id: number,
+|};
+
+/**
+ * Alias to be used for comments pertaining to a Locale
+ */
+export type TeamComment = TranslationComment;
+
+
+/**
  * String that needs to be translated, along with its current metadata,
  * and its currently accepted translations.
  */
@@ -22,6 +41,7 @@ export type Entity = {|
     +pk: number,
     +original: string,
     +original_plural: string,
+    +machinery_original: string,
     +comment: string,
     +group_comment: string,
     +resource_comment: string,
@@ -42,13 +62,26 @@ export type Entities = Array<Entity>;
 
 
 /*
- * Translation of an entity in a locale other than the currently selected.
+ * A collection of translations of an entity to a locale other than
+ * the currently selected locale.
+ */
+export type OtherLocaleTranslations = {|
+    +preferred: Array<OtherLocaleTranslation>,
+    +other: Array<OtherLocaleTranslation>,
+|};
+
+
+/*
+ * Translation of an entity in a locale other than the currently selected locale.
  */
 export type OtherLocaleTranslation = {|
-    +code: string,
-    +locale: string,
-    +direction: string,
-    +script: string,
+    +locale: {|
+        +code: string,
+        +name: string,
+        +pk: number,
+        +direction: string,
+        +script: string,
+    |},
     +translation: string,
 |};
 

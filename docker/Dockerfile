@@ -1,5 +1,7 @@
-ARG python_version
-FROM python:${python_version}-stretch
+FROM python:3.7.6-stretch
+
+ARG USER_ID=1000
+ARG GROUP_ID=1000
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV HGPYTHON3=1
@@ -45,7 +47,7 @@ RUN pip install -U 'pip>=8' && \
     pip install --no-cache-dir --require-hashes -r requirements/test.txt
 
 # Create the app user
-RUN groupadd -r pontoon && useradd --no-log-init -r -m -g pontoon pontoon
+RUN groupadd -r --gid=${GROUP_ID} pontoon && useradd --uid=${USER_ID} --no-log-init -r -m -g pontoon pontoon
 RUN chown -R pontoon:pontoon /app
 USER pontoon
 
@@ -57,7 +59,7 @@ RUN npm install
 RUN mkdir frontend
 WORKDIR frontend
 COPY frontend/package.json .
-COPY frontend/yarn.lock .
+COPY --chown=pontoon:pontoon frontend/yarn.lock .
 RUN yarn install
 
 WORKDIR /app

@@ -21,9 +21,9 @@ def reverse_migration(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('base', '0066_userprofile_from_django_browserid'),
+        ("base", "0066_userprofile_from_django_browserid"),
     ]
 
     operations = [
-        migrations.RunPython(mark_browserid_accounts, reverse_migration)
+        migrations.RunPython(mark_browserid_accounts, reverse_migration, elidable=True)
     ]

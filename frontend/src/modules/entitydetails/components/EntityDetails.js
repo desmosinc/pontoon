@@ -6,6 +6,7 @@ import { push } from 'connected-react-router';
 
 import './EntityDetails.css';
 
+import * as comments from 'core/comments';
 import * as editor from 'core/editor';
 import * as entities from 'core/entities';
 import * as lightbox from 'core/lightbox';
@@ -19,6 +20,7 @@ import * as machinery from 'modules/machinery';
 import * as otherlocales from 'modules/otherlocales';
 import * as genericeditor from 'modules/genericeditor';
 import * as fluenteditor from 'modules/fluenteditor';
+import * as teamcomments from 'modules/teamcomments';
 import * as unsavedchanges from 'modules/unsavedchanges';
 import * as notification from 'core/notification';
 
@@ -26,7 +28,7 @@ import EntityNavigation from './EntityNavigation';
 import Metadata from './Metadata';
 import Helpers from './Helpers';
 
-import type { Entity, OtherLocaleTranslation } from 'core/api';
+import type { Entity } from 'core/api';
 import type { EditorState } from 'core/editor';
 import type { Locale } from 'core/locale';
 import type { NavigationParams } from 'core/navigation';
@@ -34,11 +36,12 @@ import type { UserState } from 'core/user';
 import type { ChangeOperation, HistoryState } from 'modules/history';
 import type { MachineryState } from 'modules/machinery';
 import type { LocalesState } from 'modules/otherlocales';
+import type { TeamCommentState } from 'modules/teamcomments';
 import type { UnsavedChangesState } from 'modules/unsavedchanges';
 
 
 type Props = {|
-    activeTranslation: string,
+    activeTranslationString: string,
     editor: EditorState,
     history: HistoryState,
     isReadOnlyEditor: boolean,
@@ -48,8 +51,7 @@ type Props = {|
     nextEntity: Entity,
     previousEntity: Entity,
     otherlocales: LocalesState,
-    orderedOtherLocales: Array<OtherLocaleTranslation>,
-    preferredLocalesCount: number,
+    teamComments: TeamCommentState,
     parameters: NavigationParams,
     pluralForm: number,
     router: Object,
@@ -80,14 +82,14 @@ export class EntityDetailsBase extends React.Component<InternalProps, State> {
     }
 
     componentDidUpdate(prevProps: InternalProps) {
-        const { activeTranslation, nextEntity, pluralForm, selectedEntity } = this.props;
+        const { activeTranslationString, nextEntity, pluralForm, selectedEntity } = this.props;
 
         if (
             pluralForm !== prevProps.pluralForm ||
             selectedEntity !== prevProps.selectedEntity ||
             (
                 selectedEntity === nextEntity &&
-                activeTranslation !== prevProps.activeTranslation
+                activeTranslationString !== prevProps.activeTranslationString
             )
         ) {
             this.updateFailedChecks();
@@ -111,6 +113,7 @@ export class EntityDetailsBase extends React.Component<InternalProps, State> {
             pluralForm !== this.props.history.pluralForm ||
             selectedEntity === nextEntity
         ) {
+            dispatch(history.actions.request(parameters.entity, pluralForm));
             dispatch(history.actions.get(parameters.entity, parameters.locale, pluralForm));
         }
 
@@ -119,8 +122,13 @@ export class EntityDetailsBase extends React.Component<InternalProps, State> {
         }
 
         if (selectedEntity.pk !== this.props.machinery.entity) {
-            const source = utils.getOptimizedContent(selectedEntity.original, selectedEntity.format);
+            const source = utils.getOptimizedContent(selectedEntity.machinery_original, selectedEntity.format);
             dispatch(machinery.actions.get(source, locale, selectedEntity.pk));
+        }
+
+        if (selectedEntity.pk !== this.props.teamComments.entity) {
+            dispatch(teamcomments.actions.request(parameters.entity));
+            dispatch(teamcomments.actions.get(parameters.entity, parameters.locale));
         }
     }
 
@@ -250,6 +258,17 @@ export class EntityDetailsBase extends React.Component<InternalProps, State> {
         ));
     }
 
+    addComment = (comment: string, translation: ?number) => {
+        const { parameters, pluralForm, dispatch } = this.props;
+        dispatch(comments.actions.addComment(
+            parameters.entity,
+            parameters.locale,
+            pluralForm,
+            translation,
+            comment,
+        ));
+    }
+
     /*
      * This is a copy of EditorBase.updateTranslationStatus().
      * When changing this function, you probably want to change both.
@@ -317,6 +336,7 @@ export class EntityDetailsBase extends React.Component<InternalProps, State> {
                     locale={ state.locale }
                     user={ state.user }
                     deleteTranslation={ this.deleteTranslation }
+                    addComment={ this.addComment }
                     updateTranslationStatus={ this.updateTranslationStatus }
                     updateEditorTranslation={ this.updateEditorTranslation }
                 />
@@ -328,8 +348,8 @@ export class EntityDetailsBase extends React.Component<InternalProps, State> {
                     locale={ state.locale }
                     machinery={ state.machinery }
                     otherlocales={ state.otherlocales }
-                    orderedOtherLocales={ state.orderedOtherLocales }
-                    preferredLocalesCount={ state.preferredLocalesCount }
+                    teamComments={ state.teamComments }
+                    addComment={ this.addComment }
                     parameters={ state.parameters }
                     user={ state.user }
                     updateEditorTranslation={ this.updateEditorTranslation }
@@ -343,7 +363,7 @@ export class EntityDetailsBase extends React.Component<InternalProps, State> {
 
 const mapStateToProps = (state: Object): Props => {
     return {
-        activeTranslation: plural.selectors.getTranslationForSelectedEntity(state),
+        activeTranslationString: plural.selectors.getTranslationStringForSelectedEntity(state),
         editor: state[editor.NAME],
         history: state[history.NAME],
         isReadOnlyEditor: entities.selectors.isReadOnlyEditor(state),
@@ -353,8 +373,7 @@ const mapStateToProps = (state: Object): Props => {
         nextEntity: entities.selectors.getNextEntity(state),
         previousEntity: entities.selectors.getPreviousEntity(state),
         otherlocales: state[otherlocales.NAME],
-        orderedOtherLocales: otherlocales.selectors.getOrderedOtherLocales(state),
-        preferredLocalesCount: otherlocales.selectors.getPreferredLocalesCount(state),
+        teamComments: state[teamcomments.NAME],
         parameters: navigation.selectors.getNavigationParams(state),
         pluralForm: plural.selectors.getPluralForm(state),
         router: state.router,
