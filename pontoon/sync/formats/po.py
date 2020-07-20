@@ -63,13 +63,22 @@ class POEntity(VCSTranslation):
 
 
 class POResource(ParsedResource):
-    def __init__(self, pofile):
+    def __init__(self, pofile, source_resource=None):
         self.pofile = pofile
         self.entities = [
             POEntity(entry, k)
             for k, entry in enumerate(self.pofile)
             if not entry.obsolete
         ]
+        if source_resource:
+            # Copy over any entries that exist in the source resource but are missing in the translated resource
+            existing = set([entity.key for entity in self.entities])
+            order = len(self.entities)
+            for source_entity in source_resource.entities:
+                if source_entity.key not in existing:
+                    self.entities.append(POEntity(source_entity.po_entry, order))
+                    self.pofile.append(source_entity.po_entry)
+                    order += 1
 
     @property
     def translations(self):
@@ -113,9 +122,14 @@ class POResource(ParsedResource):
 
 
 def parse(path, source_path=None, locale=None):
+    if source_path is not None:
+        source_resource = parse(source_path, locale=locale)
+    else:
+        source_resource = None
+
     try:
         pofile = polib.pofile(path, wrapwidth=200)
     except IOError as err:
         raise ParseError(u"Failed to parse {path}: {err}".format(path=path, err=err))
 
-    return POResource(pofile)
+    return POResource(pofile, source_resource)
