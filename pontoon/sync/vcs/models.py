@@ -751,6 +751,11 @@ class VCSEntity(object):
         """Return True if a translation exists for the given locale."""
         return locale_code in self.translations
 
+    def is_empty(self, locale_code):
+        if locale_code in self.translations:
+            return not any(s for s in self.translations[locale_code].strings.values())
+        return True
+
 
 class VCSTranslation(object):
     """

@@ -74,7 +74,7 @@ class ChangeSet(object):
         database.
         Updates only entities that has been changed.
         """
-        if db_entity.has_changed(locale):
+        if db_entity.has_changed(locale) or (not db_entity.is_empty(locale) and vcs_entity.is_empty(locale)):
             self.changes["update_vcs"].append((locale.code, db_entity, vcs_entity))
             self.locales_to_commit.add(locale)
 

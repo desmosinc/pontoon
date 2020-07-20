@@ -2520,6 +2520,10 @@ class Entity(DirtyFieldsMixin, models.Model):
         """
         ChangedEntityLocale.objects.get_or_create(entity=self, locale=locale)
 
+    def is_empty(self, locale):
+        translations = self.translation_set.filter(locale=locale, approved=True)
+        return not any(translation.string for translation in translations)
+
     def get_active_translation(self, plural_form=None):
         """
         Get active translation for a given entity and plural form.

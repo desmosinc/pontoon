@@ -173,6 +173,8 @@ def update_translations(db_project, vcs_project, locale, changeset):
         if db_entity.has_changed(locale):
             # Pontoon changes overwrite whatever VCS has.
             changeset.update_vcs_entity(locale, db_entity, vcs_entity)
+        elif not db_entity.is_empty(locale) and vcs_entity.is_empty(locale):
+            changeset.update_vcs_entity(locale, db_entity, vcs_entity)
         else:
             # If Pontoon has nothing or has not changed, and the VCS
             # still has the entity, update Pontoon with whatever may
