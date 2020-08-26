@@ -114,6 +114,9 @@ you create:
    Optional. Set your `Google Cloud Translation API key`_ to use machine translation
    by Google.
 
+``LOCALE_REQUEST_FROM_EMAIL``
+   Optional. Requests for new project locales are sent from this email.
+
 ``MAINTENANCE_PAGE_URL``
    Optional. URL to the page displayed to your users when the application is placed
    in the maintenance state. See `Heroku Reference`_ for more information.
@@ -186,9 +189,28 @@ you create:
    on Heroku because the Python buildpack alters the path in a way that breaks
    the built-in SVN command. Set this to ``/usr/lib/x86_64-linux-gnu/``.
 
+``SYNC_TASK_TIMEOUT``
+   Optional. Multiple sync tasks for the same project cannot run concurrently to
+   prevent potential DB and VCS inconsistencies. We store the information about
+   the running task in cache and clear it after the task completes. In case of
+   an error, we might never clear the cache, so we use SYNC_TASK_TIMEOUT as the
+   longest possible period after which the cache is cleared and the subsequent
+   task can run. The value should exceed the longest sync task of the instance.
+   The default value is 3600 seconds (1 hour).
+
+``SYSTRAN_TRANSLATE_API_KEY``
+   Optional. Set your `SYSTRAN Translate API key`_ to use machine translation
+   by SYSTRAN.
+
 ``TZ``
    Timezone for the dynos that will run the app. Pontoon operates in UTC, so set
    this to ``UTC``.
+
+``VCS_SYNC_NAME``
+  Optional. Default committer's name used when committing translations to version control system.
+
+``VCS_SYNC_EMAIL``
+  Optional. Default committer's email used when committing translations to version control system.
 
 .. _Heroku Reference: https://devcenter.heroku.com/articles/error-pages#customize-pages
 .. _Firefox Accounts: https://developer.mozilla.org/docs/Mozilla/Tech/Firefox_Accounts/Introduction

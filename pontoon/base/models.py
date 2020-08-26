@@ -8,6 +8,7 @@ import math
 import operator
 import os.path
 import re
+import requests
 
 import Levenshtein
 import warnings
@@ -17,12 +18,13 @@ from collections import defaultdict
 from dirtyfields import DirtyFieldsMixin
 from django.db.models.functions import Length, Substr, Cast
 from six.moves import reduce
-from six.moves.urllib.parse import urlencode, urlparse
+from six.moves.urllib.parse import quote, urlencode, urlparse
 from bulk_update.helper import bulk_update
 
 from django.conf import settings
 from django.contrib.auth.models import User, Group
 from django.contrib.postgres.fields import ArrayField
+
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.db import models
@@ -37,7 +39,6 @@ from django.db.models import (
     Value,
     ExpressionWrapper,
 )
-from django.templatetags.static import static
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import python_2_unicode_compatible
@@ -59,7 +60,6 @@ from pontoon.sync.vcs.repositories import (
     update_from_vcs,
     PullFromRepositoryException,
 )
-
 
 log = logging.getLogger(__name__)
 
@@ -109,11 +109,15 @@ def user_profile_url(self):
 
 def user_gravatar_url(self, size):
     email = hashlib.md5(self.email.lower().encode("utf-8")).hexdigest()
-    data = {"s": str(size)}
-
-    if not settings.DEBUG:
-        append = "_big" if size > 88 else ""
-        data["d"] = settings.SITE_URL + static("img/anon" + append + ".jpg")
+    data = {
+        "s": str(size),
+        "d": "https://ui-avatars.com/api/{name}/{size}/{background}/{color}".format(
+            name=quote(self.display_name),
+            size=size,
+            background="333941",
+            color="FFFFFF",
+        ),
+    }
 
     return "//www.gravatar.com/avatar/{email}?{data}".format(
         email=email, data=urlencode(data)
@@ -611,6 +615,26 @@ class Locale(AggregatedStats):
         """,
     )
 
+    # Fields used by optional SYSTRAN services
+    systran_translate_code = models.CharField(
+        max_length=20,
+        blank=True,
+        help_text="""
+        SYSTRAN maintains its own list of
+        <a href="https://platform.systran.net/index">supported locales</a>.
+        Choose a matching locale from the list or leave blank to disable
+        support for SYSTRAN machine translation service.
+        """,
+    )
+    systran_translate_profile = models.CharField(
+        max_length=128,
+        blank=True,
+        help_text="""
+        SYSTRAN Profile UUID to specify the engine trained on the en-locale language pair.
+        The field is updated automatically after the systran_translate_code field changes.
+        """,
+    )
+
     transvision = models.BooleanField(
         default=False,
         help_text="""
@@ -748,6 +772,7 @@ class Locale(AggregatedStats):
             "script": self.script,
             "google_translate_code": self.google_translate_code,
             "ms_translator_code": self.ms_translator_code,
+            "systran_translate_code": self.systran_translate_code,
             "ms_terminology_code": self.ms_terminology_code,
             "transvision": json.dumps(self.transvision),
         }
@@ -777,11 +802,11 @@ class Locale(AggregatedStats):
     def nplurals(self):
         return len(self.cldr_id_list())
 
-    @property
-    def projects_permissions(self):
+    def projects_permissions(self, user):
         """
         List of tuples that contain informations required by the locale permissions view.
 
+        Projects are filtered by their visibility for the user.
         A row contains:
             id  - id of project locale
             slug - slug of the project
@@ -807,6 +832,7 @@ class Locale(AggregatedStats):
 
         project_locales = list(
             self.project_locale.visible()
+            .visible_for(user)
             .prefetch_related("project", "translators_group")
             .order_by("project__name")
             .values(
@@ -862,11 +888,13 @@ class Locale(AggregatedStats):
 
         return locale_projects
 
-    def available_projects_list(self):
+    def available_projects_list(self, user):
         """Get a list of available project slugs."""
-        return list(self.project_set.available().values_list("slug", flat=True)) + [
-            "all-projects"
-        ]
+        return list(
+            self.project_set.available()
+            .visible_for(user)
+            .values_list("slug", flat=True)
+        ) + ["all-projects"]
 
     def get_plural_index(self, cldr_plural):
         """Returns plural index for given cldr name."""
@@ -890,6 +918,7 @@ class Locale(AggregatedStats):
         TranslatedResource.objects.filter(
             resource__project__disabled=False,
             resource__project__system_project=False,
+            resource__project__visibility="public",
             locale=self,
         ).aggregate_stats(self)
 
@@ -1029,8 +1058,68 @@ class Locale(AggregatedStats):
 
         return details_list
 
+    def save(self, *args, **kwargs):
+        old = Locale.objects.get(pk=self.pk) if self.pk else None
+        super(Locale, self).save(*args, **kwargs)
+
+        # If SYSTRAN Translate code changes, update SYSTRAN Profile UUID.
+        if old is None or old.systran_translate_code == self.systran_translate_code:
+            return
+
+        if not self.systran_translate_code:
+            return
+
+        api_key = settings.SYSTRAN_TRANSLATE_API_KEY
+        server = settings.SYSTRAN_TRANSLATE_SERVER
+        profile_owner = settings.SYSTRAN_TRANSLATE_PROFILE_OWNER
+        if not (api_key or server or profile_owner):
+            return
+
+        url = "{SERVER}/translation/supportedLanguages".format(SERVER=server)
+
+        payload = {
+            "key": api_key,
+            "source": "en",
+            "target": self.systran_translate_code,
+        }
+
+        try:
+            r = requests.post(url, params=payload)
+            root = json.loads(r.content)
+
+            if "error" in root:
+                log.error(
+                    "Unable to retrieve SYSTRAN Profile UUID: {error}".format(
+                        error=root
+                    )
+                )
+                return
+
+            for languagePair in root["languagePairs"]:
+                for profile in languagePair["profiles"]:
+                    if profile["selectors"]["owner"] == profile_owner:
+                        self.systran_translate_profile = profile["id"]
+                        self.save(update_fields=["systran_translate_profile"])
+                        return
+
+        except requests.exceptions.RequestException as e:
+            log.error(
+                "Unable to retrieve SYSTRAN Profile UUID: {error}".format(error=e)
+            )
+
 
 class ProjectQuerySet(models.QuerySet):
+    def visible_for(self, user):
+        """
+        The visiblity of projects is determined by the role of the user:
+        * Administrators can access all public and private projects
+        * Other users can see only public projects
+        """
+        if user.is_superuser:
+            return self
+
+        return self.filter(visibility="public")
+
     def available(self):
         """
         Available projects are not disabled and have at least one
@@ -1147,6 +1236,14 @@ class Project(AggregatedStats):
     """,
     )
 
+    VISIBILITY_TYPES = (
+        ("private", "Private"),
+        ("public", "Public"),
+    )
+    visibility = models.CharField(
+        max_length=20, default=VISIBILITY_TYPES[0][0], choices=VISIBILITY_TYPES,
+    )
+
     # Website for in place localization
     url = models.URLField("URL", blank=True)
     width = models.PositiveIntegerField(
@@ -1215,6 +1312,7 @@ class Project(AggregatedStats):
 
     class Meta:
         permissions = (("can_manage_project", "Can manage project"),)
+        ordering = ("pk",)
 
     def __str__(self):
         return self.name
@@ -1237,10 +1335,13 @@ class Project(AggregatedStats):
         for all project locales.
         """
         disabled_changed = False
+        visibility_changed = False
 
         if self.pk is not None:
             try:
                 original = Project.objects.get(pk=self.pk)
+                if self.visibility != original.visibility:
+                    visibility_changed = True
                 if self.disabled != original.disabled:
                     disabled_changed = True
                     if self.disabled:
@@ -1252,7 +1353,7 @@ class Project(AggregatedStats):
 
         super(Project, self).save(*args, **kwargs)
 
-        if disabled_changed:
+        if disabled_changed or visibility_changed:
             for locale in self.locales.all():
                 locale.aggregate_stats()
 
@@ -1477,6 +1578,15 @@ class ExternalResource(models.Model):
 
 
 class ProjectLocaleQuerySet(models.QuerySet):
+    def visible_for(self, user):
+        """
+        Filter project locales by the visibility of their projects.
+        """
+        if user.is_superuser:
+            return self
+
+        return self.filter(project__visibility="public",)
+
     def visible(self):
         """
         Visible project locales belong to visible projects.
@@ -1518,6 +1628,7 @@ class ProjectLocale(AggregatedStats):
 
     class Meta:
         unique_together = ("project", "locale")
+        ordering = ("pk",)
         permissions = (("can_translate_project_locale", "Can add translations"),)
 
     @classmethod
@@ -2559,9 +2670,33 @@ class Entity(DirtyFieldsMixin, models.Model):
         else:
             return Translation()
 
+    def reset_term_translation(self, locale):
+        """
+        When translation in the "Terminology" project changes, update the corresponding
+        TermTranslation:
+        - If approved translation exists, use it as TermTranslation
+        - If approved translation doesn't exist, remove any TermTranslation instance
+
+        This method is also executed in the process of deleting a term translation,
+        because it needs to be rejected first, which triggers the call to this
+        function.
+        """
+        term = self.term
+
+        try:
+            approved_translation = self.translation_set.get(
+                locale=locale, approved=True
+            )
+            term_translation, _ = term.translations.get_or_create(locale=locale)
+            term_translation.text = approved_translation.string
+            term_translation.save(update_fields=["text"])
+        except Translation.DoesNotExist:
+            term.translations.filter(locale=locale).delete()
+
     @classmethod
     def for_project_locale(
         self,
+        user,
         project,
         locale,
         paths=None,
@@ -2605,7 +2740,11 @@ class Entity(DirtyFieldsMixin, models.Model):
         )
 
         if project.slug == "all-projects":
-            entities = entities.filter(resource__project__system_project=False)
+            visible_projects = Project.objects.visible_for(user)
+            entities = entities.filter(
+                resource__project__system_project=False,
+                resource__project__in=visible_projects,
+            )
         else:
             entities = entities.filter(resource__project=project)
 
@@ -2902,6 +3041,20 @@ class Translation(DirtyFieldsMixin, models.Model):
     )
     unrejected_date = models.DateTimeField(null=True, blank=True)
 
+    SOURCE_TYPES = (
+        ("translation-memory", "Translation Memory"),
+        ("google-translate", "Google Translate"),
+        ("microsoft-translator", "Microsoft Translator"),
+        ("systran-translate", "Systran Translate"),
+        ("microsoft-terminology", "Microsoft"),
+        ("transvision", "Mozilla"),
+        ("caighdean", "Caighdean"),
+    )
+
+    machinery_sources = ArrayField(
+        models.CharField(max_length=30, choices=SOURCE_TYPES), default=list, blank=True,
+    )
+
     objects = TranslationQuerySet.as_manager()
 
     # extra stores data that we want to save for the specific format
@@ -2968,6 +3121,16 @@ class Translation(DirtyFieldsMixin, models.Model):
             }
 
     @property
+    def machinery_sources_values(self):
+        """
+        Returns the corresponding comma-separated machinery_sources values
+        """
+        choices = dict(self.SOURCE_TYPES)
+        result = [choices[key] for key in self.machinery_sources]
+
+        return ", ".join(result)
+
+    @property
     def tm_source(self):
         source = self.entity.string
 
@@ -2994,6 +3157,8 @@ class Translation(DirtyFieldsMixin, models.Model):
             stats_before = self.entity.get_stats(self.locale)
 
         super(Translation, self).save(*args, **kwargs)
+
+        project = self.entity.resource.project
 
         # Only one translation can be approved at a time for any
         # Entity/Locale.
@@ -3030,7 +3195,7 @@ class Translation(DirtyFieldsMixin, models.Model):
                     entity=self.entity,
                     translation=self,
                     locale=self.locale,
-                    project=self.entity.resource.project,
+                    project=project,
                 )
 
         # Whenever a translation changes, mark the entity as having
@@ -3038,6 +3203,9 @@ class Translation(DirtyFieldsMixin, models.Model):
         # this but for now this is fine.
         if self.approved:
             self.entity.mark_changed(self.locale)
+
+        if project.slug == "terminology":
+            self.entity.reset_term_translation(self.locale)
 
         # We use get_or_create() instead of just get() to make it easier to test.
         translatedresource, _ = TranslatedResource.objects.get_or_create(
@@ -3345,6 +3513,7 @@ class TranslatedResourceQuerySet(models.QuerySet):
         if project.slug == "all-projects":
             translated_resources = translated_resources.filter(
                 resource__project__system_project=False,
+                resource__project__visibility="public",
             )
         else:
             translated_resources = translated_resources.filter(
@@ -3567,7 +3736,7 @@ class TranslatedResource(AggregatedStats):
 
 
 class Comment(models.Model):
-    author = models.ForeignKey(User, models.CASCADE)
+    author = models.ForeignKey(User, models.SET_NULL, null=True)
     timestamp = models.DateTimeField(default=timezone.now)
     translation = models.ForeignKey(
         Translation, models.CASCADE, related_name="comments", blank=True, null=True,

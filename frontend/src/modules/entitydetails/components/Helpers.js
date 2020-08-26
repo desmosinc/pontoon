@@ -11,7 +11,7 @@ import { Terms, TermCount } from 'modules/terms';
 import { Machinery, MachineryCount } from 'modules/machinery';
 import { OtherLocales, OtherLocalesCount } from 'modules/otherlocales';
 
-import type { Entity } from 'core/api';
+import type { Entity, SourceType } from 'core/api';
 import type { TermState } from 'core/term';
 import type { TeamCommentState } from 'modules/teamcomments';
 import type { Locale } from 'core/locale';
@@ -32,9 +32,11 @@ type Props = {|
     parameters: NavigationParams,
     user: UserState,
     updateEditorTranslation: (string, string) => void,
+    updateMachinerySources: (Array<SourceType>, string) => void,
     searchMachinery: (string) => void,
     addComment: (string, ?number) => void,
     addTextToEditorTranslation: (string) => void,
+    navigateToPath: (string) => void,
 |};
 
 
@@ -56,21 +58,26 @@ export default class Helpers extends React.Component<Props> {
             parameters,
             user,
             updateEditorTranslation,
+            updateMachinerySources,
             searchMachinery,
             addComment,
             addTextToEditorTranslation,
+            navigateToPath,
         } = this.props;
 
         return <>
             <div className="top">
                 <Tabs>
                     <TabList>
-                        <Tab>
-                            <Localized id='entitydetails-Helpers--terms'>
-                                { 'Terms' }
-                            </Localized>
-                            <TermCount terms={ terms }/>
-                        </Tab>
+                        {
+                            parameters.project === 'terminology' ? null :
+                            <Tab>
+                                <Localized id='entitydetails-Helpers--terms'>
+                                    { 'Terms' }
+                                </Localized>
+                                <TermCount terms={ terms }/>
+                            </Tab>
+                        }
                         <Tab>
                             <Localized id='entitydetails-Helpers--comments'>
                                 { 'Comments' }
@@ -78,15 +85,21 @@ export default class Helpers extends React.Component<Props> {
                             <CommentCount teamComments={ teamComments }/>
                         </Tab>
                     </TabList>
-                    <TabPanel>
-                        <Terms
-                            isReadOnlyEditor={ isReadOnlyEditor }
-                            terms={ terms }
-                            addTextToEditorTranslation={ addTextToEditorTranslation }
-                        />
-                    </TabPanel>
+                    {
+                        parameters.project === 'terminology' ? null :
+                        <TabPanel>
+                            <Terms
+                                isReadOnlyEditor={ isReadOnlyEditor }
+                                locale={ locale.code }
+                                terms={ terms }
+                                addTextToEditorTranslation={ addTextToEditorTranslation }
+                                navigateToPath={ navigateToPath }
+                            />
+                        </TabPanel>
+                    }
                     <TabPanel>
                         <TeamComments
+                            parameters={ parameters }
                             teamComments={ teamComments }
                             user={ user }
                             addComment={ addComment }
@@ -116,6 +129,7 @@ export default class Helpers extends React.Component<Props> {
                             locale={ locale }
                             machinery={ machinery }
                             updateEditorTranslation={ updateEditorTranslation }
+                            updateMachinerySources={ updateMachinerySources }
                             searchMachinery={ searchMachinery }
                         />
                     </TabPanel>

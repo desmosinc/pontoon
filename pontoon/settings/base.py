@@ -47,6 +47,15 @@ ADMINS = MANAGERS = (
 # A list of project manager email addresses to send project requests to
 PROJECT_MANAGERS = os.environ.get("PROJECT_MANAGERS", "").split(",")
 
+# Email from which new locale requests are sent.
+LOCALE_REQUEST_FROM_EMAIL = os.environ.get(
+    "LOCALE_REQUEST_FROM_EMAIL", "pontoon@example.com"
+)
+
+# VCS identity to be used when committing translations.
+VCS_SYNC_NAME = os.environ.get("VCS_SYNC_NAME", "Pontoon")
+VCS_SYNC_EMAIL = os.environ.get("VCS_SYNC_EMAIL", "pontoon@example.com")
+
 DATABASES = {
     "default": dj_database_url.config(default="mysql://root@localhost/pontoon")
 }
@@ -86,6 +95,11 @@ GOOGLE_TRANSLATE_API_KEY = os.environ.get("GOOGLE_TRANSLATE_API_KEY", "")
 
 # Microsoft Translator API Key
 MICROSOFT_TRANSLATOR_API_KEY = os.environ.get("MICROSOFT_TRANSLATOR_API_KEY", "")
+
+# SYSTRAN Translate Settings
+SYSTRAN_TRANSLATE_API_KEY = os.environ.get("SYSTRAN_TRANSLATE_API_KEY", "")
+SYSTRAN_TRANSLATE_SERVER = os.environ.get("SYSTRAN_TRANSLATE_SERVER", "")
+SYSTRAN_TRANSLATE_PROFILE_OWNER = os.environ.get("SYSTRAN_TRANSLATE_PROFILE_OWNER", "")
 
 # Google Analytics Key
 GOOGLE_ANALYTICS_KEY = os.environ.get("GOOGLE_ANALYTICS_KEY", "")
@@ -722,7 +736,17 @@ ALLOWED_ATTRIBUTES = {
     "acronym": ["title"],
 }
 
-SYNC_TASK_TIMEOUT = 60 * 60 * 1  # 1 hour
+# Multiple sync tasks for the same project cannot run concurrently to prevent
+# potential DB and VCS inconsistencies. We store the information about the
+# running task in cache and clear it after the task completes. In case of an
+# error, we might never clear the cache, so we use SYNC_TASK_TIMEOUT as the
+# longest possible period (in seconds) after which the cache is cleared and
+# the subsequent task can run. The value should exceed the longest sync task
+# of the instance.
+try:
+    SYNC_TASK_TIMEOUT = int(os.environ.get("SYNC_TASK_TIMEOUT", ""))
+except ValueError:
+    SYNC_TASK_TIMEOUT = 60 * 60 * 1  # 1 hour
 
 SYNC_LOG_RETENTION = 90  # days
 

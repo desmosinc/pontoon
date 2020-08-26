@@ -42,6 +42,7 @@ export type TermType = {|
     +definition: string,
     +usage: string,
     +translation: string,
+    +entityId: number,
 |};
 
 
@@ -102,10 +103,11 @@ export type OtherLocaleTranslation = {|
  * Translation that comes from a machine (Machine Translation,
  * Translation Memory... ).
  */
-type SourceType =
+export type SourceType =
     | 'translation-memory'
     | 'google-translate'
     | 'microsoft-translator'
+    | 'systran-translate'
     | 'microsoft-terminology'
     | 'transvision'
     | 'caighdean'
