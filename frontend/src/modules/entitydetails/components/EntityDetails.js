@@ -29,7 +29,7 @@ import EntityNavigation from './EntityNavigation';
 import Metadata from './Metadata';
 import Helpers from './Helpers';
 
-import type { Entity } from 'core/api';
+import type { Entity, SourceType } from 'core/api';
 import type { EditorState } from 'core/editor';
 import type { Locale } from 'core/locale';
 import type { NavigationParams } from 'core/navigation';
@@ -122,7 +122,7 @@ export class EntityDetailsBase extends React.Component<InternalProps, State> {
 
         const source = utils.getOptimizedContent(selectedEntity.machinery_original, selectedEntity.format);
 
-        if (source !== this.props.terms.sourceString) {
+        if (source !== this.props.terms.sourceString && parameters.project !== 'terminology') {
             dispatch(terms.actions.get(source, parameters.locale));
         }
 
@@ -252,6 +252,10 @@ export class EntityDetailsBase extends React.Component<InternalProps, State> {
         this.props.dispatch(editor.actions.update(translation, changeSource));
     }
 
+    updateMachinerySources = (machinerySources: Array<SourceType>, machineryTranslation: string) => {
+        this.props.dispatch(editor.actions.updateMachinerySources(machinerySources, machineryTranslation));
+    }
+
     addTextToEditorTranslation = (content: string) => {
         this.props.dispatch(editor.actions.updateSelection(content));
     }
@@ -363,8 +367,10 @@ export class EntityDetailsBase extends React.Component<InternalProps, State> {
                     parameters={ state.parameters }
                     user={ state.user }
                     updateEditorTranslation={ this.updateEditorTranslation }
+                    updateMachinerySources={ this.updateMachinerySources }
                     searchMachinery={ this.searchMachinery }
                     addTextToEditorTranslation={ this.addTextToEditorTranslation }
+                    navigateToPath={ this.navigateToPath }
                 />
             </section>
         </section>;

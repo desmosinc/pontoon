@@ -1,4 +1,5 @@
 from django import forms
+from django.contrib.postgres.forms import SimpleArrayField
 
 from pontoon.base.models import (
     Entity,
@@ -24,6 +25,7 @@ class CreateTranslationForm(forms.Form):
     approve = forms.BooleanField(required=False)
     force_suggestions = forms.BooleanField(required=False)
     paths = forms.MultipleChoiceField(required=False)
+    machinery_sources = SimpleArrayField(forms.CharField(max_length=30), required=False)
 
     def clean_paths(self):
         try:
@@ -52,3 +54,6 @@ class CreateTranslationForm(forms.Form):
         if self.cleaned_data["plural_form"] == "-1":
             return None
         return self.cleaned_data["plural_form"]
+
+    def clean_translation(self):
+        return self.data.get("translation", "")

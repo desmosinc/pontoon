@@ -1,4 +1,4 @@
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
 import logging
@@ -154,9 +154,9 @@ class CommitToGit(CommitToRepository):
         git_cmd = [
             "git",
             "-c",
-            "user.name=Mozilla Pontoon",
+            f"user.name={settings.VCS_SYNC_NAME}",
             "-c",
-            "user.email=pontoon@mozilla.com",
+            f"user.email={settings.VCS_SYNC_EMAIL}",
         ]
 
         # Add new and remove missing paths

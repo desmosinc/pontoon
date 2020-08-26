@@ -61,7 +61,9 @@ def translate_locale_agnostic(request, slug, part):
     if slug.lower() == "all-projects":
         project_locales = Locale.objects.available()
     else:
-        project = get_object_or_404(Project.objects.available(), slug=slug)
+        project = get_object_or_404(
+            Project.objects.visible_for(request.user).available(), slug=slug
+        )
         project_locales = project.locales
 
     if user.is_authenticated:
@@ -90,7 +92,7 @@ def locale_projects(request, locale):
     """Get active projects for locale."""
     locale = get_object_or_404(Locale, code=locale)
 
-    return JsonResponse(locale.available_projects_list(), safe=False)
+    return JsonResponse(locale.available_projects_list(request.user), safe=False)
 
 
 @utils.require_AJAX
@@ -112,7 +114,7 @@ def locale_project_parts(request, locale, slug):
         )
 
     try:
-        project = Project.objects.get(slug=slug)
+        project = Project.objects.visible_for(request.user).get(slug=slug)
     except Project.DoesNotExist as e:
         return JsonResponse(
             {"status": False, "message": "Not Found: {error}".format(error=e)},
@@ -131,7 +133,9 @@ def locale_project_parts(request, locale, slug):
 @utils.require_AJAX
 def authors_and_time_range(request, locale, slug, part):
     locale = get_object_or_404(Locale, code=locale)
-    project = get_object_or_404(Project.objects.available(), slug=slug)
+    project = get_object_or_404(
+        Project.objects.visible_for(request.user).available(), slug=slug
+    )
     paths = [part] if part != "all-resources" else None
 
     translations = Translation.for_locale_project_paths(locale, project, paths)
@@ -167,13 +171,14 @@ def _get_entities_list(locale, preferred_source_locale, project, form):
     )
 
 
-def _get_all_entities(locale, preferred_source_locale, project, form, entities):
+def _get_all_entities(user, locale, preferred_source_locale, project, form, entities):
     """Return entities without pagination.
 
     This is used by the in-context mode of the Translate page.
     """
     has_next = False
     entities_to_map = Entity.for_project_locale(
+        user,
         project,
         locale,
         paths=form.cleaned_data["paths"],
@@ -285,7 +290,7 @@ def entities(request):
     }
 
     try:
-        entities = Entity.for_project_locale(project, locale, **form_data)
+        entities = Entity.for_project_locale(request.user, project, locale, **form_data)
     except ValueError as error:
         return JsonResponse(
             {"status": False, "message": "{error}".format(error=error)}, status=500
@@ -298,7 +303,7 @@ def entities(request):
     # In-place view: load all entities
     if form.cleaned_data["inplace_editor"]:
         return _get_all_entities(
-            locale, preferred_source_locale, project, form, entities
+            request.user, locale, preferred_source_locale, project, form, entities
         )
 
     # Out-of-context view: paginate entities
@@ -416,19 +421,20 @@ def get_translation_history(request):
     payload = []
 
     for t in translations:
-        u = t.user
+        u = t.user or User(username="Imported", first_name="Imported", email="imported")
         translation_dict = t.serialize()
         translation_dict.update(
             {
-                "user": "Imported" if u is None else u.name_or_email,
-                "uid": "" if u is None else u.id,
-                "username": "" if u is None else u.username,
-                "user_gravatar_url_small": "" if u is None else u.gravatar_url(88),
+                "user": u.name_or_email,
+                "uid": u.id,
+                "username": u.username,
+                "user_gravatar_url_small": u.gravatar_url(88),
                 "date": t.date.strftime("%b %d, %Y %H:%M"),
                 "date_iso": t.date.isoformat(),
                 "approved_user": User.display_name_or_blank(t.approved_user),
                 "unapproved_user": User.display_name_or_blank(t.unapproved_user),
-                "comments": [c.serialize() for c in t.comments.all()],
+                "comments": [c.serialize() for c in t.comments.order_by("timestamp")],
+                "machinery_sources": t.machinery_sources_values,
             }
         )
         payload.append(translation_dict)
@@ -450,7 +456,9 @@ def get_team_comments(request):
 
     entity = get_object_or_404(Entity, pk=entity)
     locale = get_object_or_404(Locale, code=locale)
-    comments = Comment.objects.filter(entity=entity, locale=locale)
+    comments = Comment.objects.filter(entity=entity, locale=locale).order_by(
+        "timestamp"
+    )
 
     payload = [c.serialize() for c in comments]
 
@@ -490,10 +498,13 @@ def _send_add_comment_notifications(user, comment, entity, locale, translation):
         )
         translations = Translation.objects.filter(entity=entity, locale=locale)
 
-        # Only notify translators of the project if defined
-        translators = project_locale.translators_group.user_set.values_list(
-            "pk", flat=True
-        )
+        translators = []
+        # Some projects (e.g. system projects) don't have translators group
+        if project_locale.translators_group:
+            # Only notify translators of the project if defined
+            translators = project_locale.translators_group.user_set.values_list(
+                "pk", flat=True
+            )
         if not translators:
             translators = locale.translators_group.user_set.values_list("pk", flat=True)
 
@@ -654,7 +665,7 @@ def upload(request):
         raise Http404
 
     locale = get_object_or_404(Locale, code=code)
-    project = get_object_or_404(Project, slug=slug)
+    project = get_object_or_404(Project.objects.visible_for(request.user), slug=slug)
 
     if not request.user.can_translate(
         project=project, locale=locale
@@ -686,7 +697,9 @@ def download_translation_memory(request, locale, slug, filename):
     if slug.lower() == "all-projects":
         project_filter = Q()
     else:
-        project = get_object_or_404(Project.objects.available(), slug=slug)
+        project = get_object_or_404(
+            Project.objects.visible_for(request.user).available(), slug=slug
+        )
         project_filter = Q(project=project)
 
     tm_entries = (
